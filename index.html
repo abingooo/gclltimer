@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>辩论赛计时器 | 工程伦理</title>
+  <style>
+    :root {
+      --bg-dark: #f5f3ee;
+      --bg-mid: #ffffff;
+      --bg-lite: #eef2f4;
+      --grid: rgba(20, 20, 20, 0.06);
+      --text: #1b1b1b;
+      --muted: #5a5a5a;
+      --aff: #f0a72f;
+      --neg: #24b7a6;
+      --warn: #d94b3f;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+      --bg-image: linear-gradient(120deg, rgba(240, 167, 47, 0.08), rgba(36, 183, 166, 0.08));
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(120deg, rgba(240, 167, 47, 0.12), transparent 35%),
+        radial-gradient(900px 500px at 80% 10%, rgba(36, 183, 166, 0.16), transparent 60%),
+        linear-gradient(150deg, var(--bg-dark), var(--bg-mid) 55%, var(--bg-lite));
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: var(--bg-image);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: clamp(360px, 55vw, 760px);
+      opacity: 0.05;
+      filter: grayscale(1) brightness(0.75) sepia(0.35) hue-rotate(18deg);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+
+    .frame {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto auto;
+      gap: 18px;
+      padding: 20px 24px 18px;
+      position: relative;
+    }
+
+    .top-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.5fr) minmax(0, 0.95fr);
+      align-items: center;
+      gap: 24px;
+    }
+
+    .team {
+      padding: 20px 36px 18px;
+      border-radius: 16px;
+      font-size: 50px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      margin-top: 10px;
+      min-height: 110px;
+      width: 100%;
+      display: grid;
+      place-items: center;
+    }
+
+    .team-name {
+      font-size: 50px;
+      line-height: 1.1;
+    }
+
+    .stance-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      text-align: center;
+    }
+
+    .team.aff {
+      background: linear-gradient(120deg, rgba(240, 167, 47, 0.95), rgba(240, 167, 47, 0.25));
+      color: #3b2605;
+    }
+
+    .team.neg {
+      background: linear-gradient(120deg, rgba(36, 183, 166, 0.85), rgba(36, 183, 166, 0.2));
+      color: #06211d;
+    }
+
+    .team.aff .team-group {
+      color: #5a3b0f;
+    }
+
+    .team.neg .team-group {
+      color: #0d4e45;
+    }
+
+    .center-title {
+      text-align: center;
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+    }
+
+    .center-title .title {
+      font-size: 60px;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .arena {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.5fr) minmax(0, 0.95fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .stance-item {
+      position: relative;
+      padding: 30px 30px 34px;
+      border-radius: 26px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 26px 70px rgba(0, 0, 0, 0.14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin-top: var(--stance-offset, 22px);
+      min-height: clamp(260px, 52vh, 520px);
+      overflow: hidden;
+    }
+
+    .stance-item.aff {
+      border-left: 6px solid var(--aff);
+      background:
+        radial-gradient(200px 200px at 20% 15%, rgba(240, 167, 47, 0.18), transparent 60%),
+        linear-gradient(160deg, rgba(240, 167, 47, 0.18), rgba(255, 255, 255, 0.94));
+    }
+
+    .stance-item.neg {
+      border-right: 6px solid var(--neg);
+      background:
+        radial-gradient(220px 220px at 80% 15%, rgba(36, 183, 166, 0.2), transparent 60%),
+        linear-gradient(200deg, rgba(36, 183, 166, 0.18), rgba(255, 255, 255, 0.94));
+    }
+
+    .stance-item.aff::after,
+    .stance-item.neg::after {
+      content: "";
+      position: absolute;
+      inset: 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      pointer-events: none;
+    }
+
+    .stance-item.aff::before,
+    .stance-item.neg::before {
+      content: "";
+      position: absolute;
+      height: 4px;
+      left: 26px;
+      right: 26px;
+      top: 18px;
+      border-radius: 999px;
+      opacity: 0.6;
+    }
+
+    .stance-item.aff::before {
+      background: linear-gradient(90deg, var(--aff), rgba(240, 167, 47, 0.2));
+    }
+
+    .stance-item.neg::before {
+      background: linear-gradient(90deg, rgba(36, 183, 166, 0.2), var(--neg));
+    }
+
+    .stance-text {
+      font-size: clamp(32px, 4.6vw, 52px);
+      line-height: 1.35;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      max-width: 16ch;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    .stage-shell {
+      position: relative;
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.14);
+      min-height: clamp(360px, 60vh, 600px);
+      display: grid;
+      place-items: center;
+      padding: 24px 18px 18px;
+    }
+
+    .stage-shell::before {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border-radius: 24px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      pointer-events: none;
+    }
+
+    .stage-shell::after {
+      content: "";
+      position: absolute;
+      left: 70px;
+      right: 70px;
+      top: 18px;
+      height: 5px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--aff), var(--neg));
+      opacity: 0.5;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      gap: 14px;
+      padding: 18px 12px 0;
+      width: 100%;
+    }
+
+    .stage-meta {
+      display: inline-flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      background: rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      color: var(--muted);
+    }
+
+    .badge.stage-badge {
+      font-size: clamp(18px, 2.6vw, 30px);
+      padding: 14px 28px;
+      letter-spacing: 0.16em;
+      font-weight: 700;
+      color: #3a362f;
+    }
+
+    .badge.side {
+      font-size: clamp(16px, 2.2vw, 26px);
+      padding: 14px 24px;
+      letter-spacing: 0.16em;
+      color: #0a0f14;
+      font-weight: 700;
+    }
+
+    .stage h1 {
+      margin: 0;
+      font-size: clamp(34px, 4.6vw, 64px);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .timer {
+      font-family: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
+      font-size: clamp(80px, 14vw, 200px);
+      letter-spacing: 0.08em;
+      text-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+      transition: color 0.3s ease, transform 0.3s ease;
+    }
+
+    .timer.danger {
+      color: var(--warn);
+      transform: scale(1.02);
+      text-shadow: 0 0 24px rgba(217, 75, 63, 0.35);
+    }
+
+    .next-row {
+      display: grid;
+      gap: 6px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .next-row .next-stage {
+      font-size: 16px;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .progress-row {
+      width: min(720px, 100%);
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .progress {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(120deg, var(--aff), var(--neg));
+      transition: width 0.2s ease;
+    }
+
+    .progress-text {
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .rail {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(10px, 1fr);
+      gap: 6px;
+      padding: 8px 6px;
+      align-items: center;
+    }
+
+    .rail button {
+      height: 12px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(0, 0, 0, 0.12);
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .rail button.active {
+      height: 16px;
+      background: linear-gradient(120deg, var(--aff), var(--neg));
+      transform: translateY(-1px);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: var(--shadow);
+    }
+
+    .controls .config-panel {
+      flex: 1 1 520px;
+      min-width: min(520px, 100%);
+    }
+
+    .control-left,
+    .control-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .controls button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: rgba(0, 0, 0, 0.06);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .controls button:hover {
+      transform: translateY(-1px);
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .controls button.primary {
+      background: linear-gradient(120deg, rgba(240, 167, 47, 0.95), rgba(36, 183, 166, 0.9));
+      color: #2a1a05;
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .switch input {
+      accent-color: var(--neg);
+    }
+
+    .hotkeys {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .config-panel {
+      display: grid;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+    }
+
+    .config-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .config-controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .config-controls input,
+    .config-controls select {
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      padding: 0 12px;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.02);
+      color: var(--text);
+      min-width: 120px;
+    }
+
+    .config-controls select {
+      min-width: 220px;
+    }
+
+    .config-controls button {
+      height: 32px;
+      border-radius: 999px;
+      border: none;
+      padding: 0 16px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: rgba(0, 0, 0, 0.06);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .config-controls button:hover {
+      transform: translateY(-1px);
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px dashed rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.03);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .file-label:hover {
+      transform: translateY(-1px);
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .frame[data-side="正方"] .timer { color: var(--aff); }
+    .frame[data-side="反方"] .timer { color: var(--neg); }
+    .frame[data-side="正方"] .badge.side { background: var(--aff); }
+    .frame[data-side="反方"] .badge.side { background: var(--neg); }
+    .frame[data-side="双方"] .timer { color: var(--text); }
+    .frame[data-side="双方"] .badge.side {
+      background: linear-gradient(120deg, var(--aff), var(--neg));
+      color: #0a0f14;
+    }
+
+    .free-timers {
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      width: min(520px, 100%);
+      margin: 2px auto 0;
+    }
+
+    .timer-chip {
+      border-radius: 14px;
+      padding: 10px 14px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(0, 0, 0, 0.03);
+      display: grid;
+      gap: 4px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .timer-chip.active {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .timer-chip .label {
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .timer-chip .value {
+      font-size: clamp(26px, 3vw, 36px);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    @media (max-width: 980px) {
+      .frame {
+        grid-template-rows: auto 1fr auto auto auto;
+      }
+
+      .top-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .arena {
+        grid-template-columns: 1fr;
+      }
+
+      .stance-item {
+        min-height: auto;
+        margin-top: 0;
+      }
+
+      .stance-item.aff {
+        order: 2;
+      }
+
+      .stage-shell {
+        order: 1;
+      }
+
+      .stance-item.neg {
+        order: 3;
+      }
+
+      .controls {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame" data-side="正方">
+    <header class="top-bar">
+      <div class="team aff" id="teamAff">
+        <div class="team-name" id="teamAffName">正方: 第16组</div>
+      </div>
+      <div class="center-title">
+        <div class="title">2025秋《工程伦理》课程辩论赛</div>
+      </div>
+      <div class="team neg" id="teamNeg">
+        <div class="team-name" id="teamNegName">反方: 第7组</div>
+      </div>
+    </header>
+
+    <section class="arena">
+      <aside class="stance-item aff">
+        <div class="stance-content">
+          <div class="stance-text" id="affStance">电信诈骗频发与电信运营商运营伦理无关</div>
+        </div>
+      </aside>
+      <div class="stage-shell">
+        <main class="stage">
+          <div class="stage-meta">
+            <span class="badge stage-badge" id="stageGroup">陈词阶段</span>
+            <span class="badge side" id="stageSide">正方</span>
+          </div>
+          <h1 id="stageTitle">正方辩手陈词</h1>
+          <div class="timer" id="timerDisplay">02:00</div>
+          <div class="free-timers" id="freeTimers">
+            <div class="timer-chip" data-side="正方" id="freeAff">
+              <div class="label">正方剩余</div>
+              <div class="value" id="freeAffTime">03:00</div>
+            </div>
+            <div class="timer-chip" data-side="反方" id="freeNeg">
+              <div class="label">反方剩余</div>
+              <div class="value" id="freeNegTime">03:00</div>
+            </div>
+          </div>
+          <div class="next-row">
+            <div class="label">下一个环节</div>
+            <div class="next-stage" id="nextStage">反方辩手陈词 · 02:00</div>
+          </div>
+          <div class="progress-row">
+            <div class="progress" id="progressBar"><span></span></div>
+            <div class="progress-text"><span id="progressText">0%</span> · 总时长 <span id="totalDuration"></span></div>
+          </div>
+        </main>
+      </div>
+      <aside class="stance-item neg">
+        <div class="stance-content">
+          <div class="stance-text" id="negStance">电信诈骗频发与电信运营商运营伦理有关</div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="rail" id="stageRail"></section>
+
+    <footer class="controls">
+      <div class="control-left">
+        <button class="primary" id="toggle">开始</button>
+        <button id="reset">重置</button>
+        <button id="prev">上一环节</button>
+        <button id="nextBtn">下一环节</button>
+      </div>
+      <section class="config-panel">
+        <div class="config-controls">
+          <select id="topicSelect" aria-label="选择辩题组">
+            <option value="">未加载数据</option>
+          </select>
+          <label class="file-label">
+            <input type="file" id="topicFile" accept=".csv,text/csv" hidden />
+            <span>加载CSV</span>
+          </label>
+          <button id="applyTopic">应用</button>
+        </div>
+      </section>
+      <div class="control-right">
+        <button id="minus">-10s</button>
+        <button id="plus">+10s</button>
+        <label class="switch"><input type="checkbox" id="auto" checked />自动切换</label>
+        <label class="switch"><input type="checkbox" id="sound" checked />提示音</label>
+      </div>
+    </footer>
+
+    <div class="hotkeys">快捷键：空格 开始/暂停 · ←→ 上下环节 · R 重置 · ↑↓ ±10s · F 正方发言 · J 反方发言</div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const DEFAULT_FREE_LIMIT = 180; // 双方自由辩各自倒计时（秒）
+
+    const defaultSchedule = [
+      { group: "陈词阶段", label: "正方辩手陈词", side: "正方", duration: 120 },
+      { group: "陈词阶段", label: "反方辩手陈词", side: "反方", duration: 120 },
+      { group: "攻辩阶段", label: "正方辩手提问", side: "正方", duration: 30 },
+      { group: "攻辩阶段", label: "反方辩手回答", side: "反方", duration: 60 },
+      { group: "攻辩阶段", label: "反方辩手提问", side: "反方", duration: 30 },
+      { group: "攻辩阶段", label: "正方辩手回答", side: "正方", duration: 60 },
+      { group: "攻辩阶段", label: "正方辩手提问", side: "正方", duration: 30 },
+      { group: "攻辩阶段", label: "反方辩手回答", side: "反方", duration: 60 },
+      { group: "攻辩阶段", label: "反方辩手提问", side: "反方", duration: 30 },
+      { group: "攻辩阶段", label: "正方辩手回答", side: "正方", duration: 60 },
+      { group: "攻辩阶段", label: "正方攻辩小结", side: "正方", duration: 120 },
+      { group: "攻辩阶段", label: "反方攻辩小结", side: "反方", duration: 120 },
+      { group: "自由辩阶段", label: "自由辩论", side: "双方", duration: DEFAULT_FREE_LIMIT * 2, free: true },
+      { group: "总结陈词阶段", label: "反方辩手总结", side: "反方", duration: 120 },
+      { group: "总结陈词阶段", label: "正方辩手总结", side: "正方", duration: 120 }
+    ];
+
+    let FREE_LIMIT = DEFAULT_FREE_LIMIT;
+    let schedule = defaultSchedule;
+    let totalSeconds = schedule.reduce((sum, item) => sum + item.duration, 0);
+
+    const defaultConfig = {
+      teams: {
+        aff: {
+          name: "正方",
+          group: "第16组",
+          stance: "电信诈骗频发与电信运营商运营伦理无关"
+        },
+        neg: {
+          name: "反方",
+          group: "第7组",
+          stance: "电信诈骗频发与电信运营商运营伦理有关"
+        }
+      }
+    };
+
+    let teamMeta = { ...defaultConfig.teams };
+
+    const dom = {
+      frame: document.querySelector(".frame"),
+      stageGroup: document.getElementById("stageGroup"),
+      stageSide: document.getElementById("stageSide"),
+      stageTitle: document.getElementById("stageTitle"),
+      timer: document.getElementById("timerDisplay"),
+      nextStage: document.getElementById("nextStage"),
+      progressBar: document.querySelector("#progressBar span"),
+      progressText: document.getElementById("progressText"),
+      totalDuration: document.getElementById("totalDuration"),
+      rail: document.getElementById("stageRail"),
+      teamAffName: document.getElementById("teamAffName"),
+      teamNegName: document.getElementById("teamNegName"),
+      affStance: document.getElementById("affStance"),
+      negStance: document.getElementById("negStance"),
+      toggle: document.getElementById("toggle"),
+      reset: document.getElementById("reset"),
+      prev: document.getElementById("prev"),
+      nextBtn: document.getElementById("nextBtn"),
+      plus: document.getElementById("plus"),
+      minus: document.getElementById("minus"),
+      auto: document.getElementById("auto"),
+      sound: document.getElementById("sound"),
+      freeTimers: document.getElementById("freeTimers"),
+      freeAff: document.getElementById("freeAff"),
+      freeNeg: document.getElementById("freeNeg"),
+      freeAffTime: document.getElementById("freeAffTime"),
+      freeNegTime: document.getElementById("freeNegTime"),
+      topicSelect: document.getElementById("topicSelect"),
+      applyTopic: document.getElementById("applyTopic"),
+      topicFile: document.getElementById("topicFile")
+    };
+
+    let index = 0;
+    let remaining = schedule[0].duration;
+    let running = false;
+    let timerId = null;
+    let audioCtx = null;
+    let freeState = { aff: FREE_LIMIT, neg: FREE_LIMIT, active: "正方" };
+    let topicData = [];
+
+    function loadBackground() {
+      const img = new Image();
+      img.onload = () => {
+        document.documentElement.style.setProperty("--bg-image", "url('cqulogo.png')");
+      };
+      img.onerror = () => {
+        document.documentElement.style.setProperty("--bg-image", "linear-gradient(120deg, rgba(240, 167, 47, 0.08), rgba(36, 183, 166, 0.08))");
+      };
+      img.src = "cqulogo.png";
+    }
+
+    function applyConfig(cfg) {
+      teamMeta = {
+        aff: { ...defaultConfig.teams.aff, ...(cfg.teams && cfg.teams.aff ? cfg.teams.aff : {}) },
+        neg: { ...defaultConfig.teams.neg, ...(cfg.teams && cfg.teams.neg ? cfg.teams.neg : {}) }
+      };
+      dom.teamAffName.textContent = `${teamMeta.aff.name}: ${teamMeta.aff.group}`;
+      dom.teamNegName.textContent = `${teamMeta.neg.name}: ${teamMeta.neg.group}`;
+      dom.affStance.textContent = teamMeta.aff.stance;
+      dom.negStance.textContent = teamMeta.neg.stance;
+    }
+
+    function formatTime(seconds) {
+      const min = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const sec = String(seconds % 60).padStart(2, "0");
+      return `${min}:${sec}`;
+    }
+
+    function formatTimeLabel(seconds) {
+      const min = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const sec = String(seconds % 60).padStart(2, "0");
+      return `${min}:${sec}`;
+    }
+
+    function buildRail() {
+      dom.rail.innerHTML = "";
+      schedule.forEach((item, idx) => {
+        const btn = document.createElement("button");
+        btn.title = `${item.label} ${formatTimeLabel(item.duration)}`;
+        btn.addEventListener("click", () => jumpTo(idx));
+        dom.rail.appendChild(btn);
+      });
+    }
+
+    function applyStageConfig(cfg) {
+      const cfgSchedule = Array.isArray(cfg.schedule) ? cfg.schedule : defaultSchedule;
+      schedule = cfgSchedule.map((item) => ({
+        ...item,
+        duration: Number(item.duration) || 0
+      }));
+      const freeIndex = schedule.findIndex((item) => item.free === true);
+      if (freeIndex !== -1) {
+        const freeItem = schedule[freeIndex];
+        const freeOverride = Number(freeItem.duration);
+        const cfgFreeLimit = Number(cfg.freeLimitSeconds);
+        FREE_LIMIT = Number.isFinite(freeOverride) && freeOverride > 0
+          ? freeOverride
+          : Number.isFinite(cfgFreeLimit) && cfgFreeLimit > 0
+            ? cfgFreeLimit
+            : DEFAULT_FREE_LIMIT;
+        schedule[freeIndex].duration = FREE_LIMIT * 2;
+      } else {
+        FREE_LIMIT = Number.isFinite(cfg.freeLimitSeconds) ? cfg.freeLimitSeconds : DEFAULT_FREE_LIMIT;
+      }
+      totalSeconds = schedule.reduce((sum, item) => sum + item.duration, 0);
+      index = 0;
+      remaining = schedule[0].duration;
+      freeState = { aff: FREE_LIMIT, neg: FREE_LIMIT, active: "正方" };
+      buildRail();
+      updateDisplay();
+    }
+
+    function loadStageConfig() {
+      const cfg = window.APP_CONFIG || {};
+      if (cfg.title) {
+        const titleNode = document.querySelector(".center-title .title");
+        if (titleNode) titleNode.textContent = cfg.title;
+        document.title = `辩论赛计时器 | ${cfg.title}`;
+      }
+      applyStageConfig(cfg);
+    }
+
+    function updateRail() {
+      const items = dom.rail.querySelectorAll("button");
+      items.forEach((item, idx) => {
+        item.classList.toggle("active", idx === index);
+      });
+    }
+
+    function currentItem() {
+      return schedule[index];
+    }
+
+    function isFreeStage() {
+      return currentItem().free === true;
+    }
+
+    function activeFreeKey() {
+      return freeState.active === "正方" ? "aff" : "neg";
+    }
+
+    function setActiveFreeSide(side) {
+      if (side !== "正方" && side !== "反方") return;
+      beep(760, 0.18);
+      freeState.active = side;
+      updateDisplay();
+    }
+
+    function stageElapsed() {
+      if (isFreeStage()) {
+        return currentItem().duration - (freeState.aff + freeState.neg);
+      }
+      return currentItem().duration - remaining;
+    }
+
+    function updateProgress() {
+      const elapsedBefore = schedule.slice(0, index).reduce((sum, item) => sum + item.duration, 0);
+      const elapsed = elapsedBefore + stageElapsed();
+      const percent = Math.min(100, Math.round((elapsed / totalSeconds) * 100));
+      dom.progressText.textContent = `${percent}%`;
+      dom.progressBar.style.width = `${percent}%`;
+    }
+
+    function updateDisplay() {
+      const item = currentItem();
+      const free = isFreeStage();
+      dom.frame.dataset.side = free ? freeState.active : item.side;
+      dom.stageGroup.textContent = item.group;
+      dom.stageSide.textContent = free ? `${freeState.active}发言` : item.side;
+      dom.stageTitle.textContent = item.label;
+      dom.timer.textContent = free ? formatTime(freeState[activeFreeKey()]) : formatTime(remaining);
+      dom.teamAffName.textContent = `${teamMeta.aff.name}: ${teamMeta.aff.group}`;
+      dom.teamNegName.textContent = `${teamMeta.neg.name}: ${teamMeta.neg.group}`;
+
+      dom.freeTimers.style.display = free ? "grid" : "none";
+      dom.freeAffTime.textContent = formatTime(freeState.aff);
+      dom.freeNegTime.textContent = formatTime(freeState.neg);
+      dom.freeAff.classList.toggle("active", free && freeState.active === "正方");
+      dom.freeNeg.classList.toggle("active", free && freeState.active === "反方");
+
+      const nextItem = schedule[index + 1];
+      dom.nextStage.textContent = nextItem ? `${nextItem.label} · ${formatTimeLabel(nextItem.duration)}` : "流程结束";
+      dom.totalDuration.textContent = formatTime(totalSeconds);
+
+      const dangerTime = free ? freeState[activeFreeKey()] <= 10 : remaining <= 10;
+      dom.timer.classList.toggle("danger", dangerTime);
+      updateProgress();
+      updateRail();
+    }
+
+    function beep(frequency = 880, duration = 0.5) {
+      if (!dom.sound.checked) return;
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = frequency;
+      osc.type = "sine";
+      gain.gain.value = 0.12;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function setRunning(value) {
+      const wasRunning = running;
+      running = value;
+      dom.toggle.textContent = running ? "暂停" : "开始";
+      if (running && !wasRunning) {
+        beep(920, 0.5);
+      }
+      if (running) {
+        timerId = setInterval(tick, 1000);
+      } else {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    function tick() {
+      const free = isFreeStage();
+      if (free) {
+        const key = activeFreeKey();
+        if (freeState[key] > 0) {
+          freeState[key] -= 1;
+          if (freeState[key] === 10) beep(640, 0.5);
+          if (freeState[key] === 0) beep(480, 0.5);
+          updateDisplay();
+        }
+        if (freeState.aff === 0 && freeState.neg === 0) {
+          if (dom.auto.checked && index < schedule.length - 1) {
+            nextStage();
+          } else {
+            setRunning(false);
+          }
+        }
+        return;
+      }
+
+      if (remaining > 0) {
+        remaining -= 1;
+        if (remaining === 10) beep(640, 0.5);
+        if (remaining === 0) beep(480, 0.5);
+        updateDisplay();
+        return;
+      }
+      if (dom.auto.checked && index < schedule.length - 1) {
+        nextStage();
+      } else {
+        setRunning(false);
+      }
+    }
+
+    function nextStage() {
+      if (index >= schedule.length - 1) {
+        setRunning(false);
+        return;
+      }
+      index += 1;
+      if (isFreeStage()) {
+        freeState = { aff: FREE_LIMIT, neg: FREE_LIMIT, active: freeState.active };
+      }
+      remaining = schedule[index].duration;
+      beep(860, 0.5);
+      updateDisplay();
+    }
+
+    function prevStage() {
+      if (index === 0) return;
+      index -= 1;
+      if (isFreeStage()) {
+        freeState = { aff: FREE_LIMIT, neg: FREE_LIMIT, active: freeState.active };
+      }
+      remaining = schedule[index].duration;
+      updateDisplay();
+    }
+
+    function jumpTo(target) {
+      index = target;
+      if (isFreeStage()) {
+        freeState = { aff: FREE_LIMIT, neg: FREE_LIMIT, active: "正方" };
+      }
+      remaining = schedule[index].duration;
+      updateDisplay();
+    }
+
+    function resetStage() {
+      if (isFreeStage()) {
+        freeState = { aff: FREE_LIMIT, neg: FREE_LIMIT, active: freeState.active };
+      }
+      remaining = schedule[index].duration;
+      setRunning(false);
+      updateDisplay();
+    }
+
+    dom.toggle.addEventListener("click", () => {
+      setRunning(!running);
+    });
+
+    dom.reset.addEventListener("click", resetStage);
+    dom.nextBtn.addEventListener("click", nextStage);
+    dom.prev.addEventListener("click", prevStage);
+
+    dom.plus.addEventListener("click", () => {
+      if (isFreeStage()) {
+        const key = activeFreeKey();
+        freeState[key] = Math.min(FREE_LIMIT + 60, freeState[key] + 10);
+      } else {
+        remaining = Math.min(schedule[index].duration + 60, remaining + 10);
+      }
+      updateDisplay();
+    });
+
+    dom.minus.addEventListener("click", () => {
+      if (isFreeStage()) {
+        const key = activeFreeKey();
+        freeState[key] = Math.max(0, freeState[key] - 10);
+      } else {
+        remaining = Math.max(0, remaining - 10);
+      }
+      updateDisplay();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.target.tagName === "INPUT") return;
+      if (event.code === "Space") {
+        event.preventDefault();
+        setRunning(!running);
+      }
+      if (event.code === "ArrowRight") nextStage();
+      if (event.code === "ArrowLeft") prevStage();
+      if (event.code === "ArrowUp") {
+        if (isFreeStage()) {
+          const key = activeFreeKey();
+          freeState[key] = Math.min(FREE_LIMIT + 60, freeState[key] + 10);
+        } else {
+          remaining = Math.min(schedule[index].duration + 60, remaining + 10);
+        }
+        updateDisplay();
+      }
+      if (event.code === "ArrowDown") {
+        if (isFreeStage()) {
+          const key = activeFreeKey();
+          freeState[key] = Math.max(0, freeState[key] - 10);
+        } else {
+          remaining = Math.max(0, remaining - 10);
+        }
+        updateDisplay();
+      }
+      if (event.code === "KeyF" && isFreeStage()) {
+        setActiveFreeSide("正方");
+      }
+      if (event.code === "KeyJ" && isFreeStage()) {
+        setActiveFreeSide("反方");
+      }
+      if (event.code === "KeyR") resetStage();
+    });
+
+    dom.freeAff.addEventListener("click", () => setActiveFreeSide("正方"));
+    dom.freeNeg.addEventListener("click", () => setActiveFreeSide("反方"));
+
+    function syncStanceOffset() {
+      if (window.matchMedia("(max-width: 980px)").matches) {
+        dom.frame.style.setProperty("--stance-offset", "0px");
+        return;
+      }
+      const badge = document.querySelector(".stage-meta");
+      const stance = document.querySelector(".stance-item");
+      if (!badge || !stance) return;
+      const badgeTop = badge.getBoundingClientRect().top;
+      const stanceTop = stance.getBoundingClientRect().top;
+      const offset = Math.max(0, Math.round(badgeTop - stanceTop));
+      dom.frame.style.setProperty("--stance-offset", `${offset}px`);
+    }
+
+    function detectDelimiter(headerLine) {
+      const tabCount = (headerLine.match(/\t/g) || []).length;
+      const commaCount = (headerLine.match(/,/g) || []).length;
+      return tabCount >= commaCount ? "\t" : ",";
+    }
+
+    function parseDelimited(text) {
+      const clean = text.replace(/^\uFEFF/, "");
+      const lines = clean.split(/\r?\n/).filter((line) => line.trim() !== "");
+      if (lines.length === 0) return [];
+      const delimiter = detectDelimiter(lines[0]);
+      const rows = [];
+      let headers = [];
+
+      const parseLine = (line) => {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+          if (char === "\"") {
+            const next = line[i + 1];
+            if (inQuotes && next === "\"") {
+              current += "\"";
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === delimiter && !inQuotes) {
+            values.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+        return values;
+      };
+
+      headers = parseLine(lines[0]).map((header) => header.trim());
+      for (let i = 1; i < lines.length; i += 1) {
+        const values = parseLine(lines[i]);
+        if (values.length === 0) continue;
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx] ? values[idx].trim() : "";
+        });
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function buildTopicOptions() {
+      dom.topicSelect.innerHTML = "";
+      if (topicData.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "未加载数据";
+        dom.topicSelect.appendChild(opt);
+        dom.topicSelect.disabled = true;
+        return;
+      }
+      topicData.forEach((item) => {
+        const opt = document.createElement("option");
+        opt.value = item["序号"] || "";
+        const affName = item["正方队名"] || "正方";
+        const negName = item["反方队名"] || "反方";
+        opt.textContent = `${opt.value} · ${affName} vs ${negName}`;
+        dom.topicSelect.appendChild(opt);
+      });
+      dom.topicSelect.disabled = false;
+    }
+
+    function findTopicByNumber(num) {
+      const target = String(num || "").trim();
+      if (!target) return null;
+      return topicData.find((item) => String(item["序号"] || "").trim() === target) || null;
+    }
+
+    function applyTopic(item) {
+      if (!item) return;
+      const aff = {};
+      const neg = {};
+      if (item["正方队名"]) aff.group = item["正方队名"];
+      if (item["正方辩题"]) aff.stance = item["正方辩题"];
+      if (item["反方队名"]) neg.group = item["反方队名"];
+      if (item["反方辩题"]) neg.stance = item["反方辩题"];
+      applyConfig({ teams: { aff, neg } });
+      updateDisplay();
+    }
+
+    async function loadTopicsFromCsv() {
+      try {
+        const response = await fetch("data.csv", { cache: "no-store" });
+        if (!response.ok) throw new Error("fetch_failed");
+        const text = await response.text();
+        topicData = parseDelimited(text);
+        buildTopicOptions();
+      if (topicData.length > 0) {
+        const first = topicData[0];
+        dom.topicSelect.value = first["序号"] || "";
+        applyTopic(first);
+      }
+    } catch (error) {
+      topicData = [];
+      buildTopicOptions();
+    }
+  }
+
+    window.addEventListener("resize", () => {
+      window.requestAnimationFrame(syncStanceOffset);
+    });
+
+    window.addEventListener("load", () => {
+      window.requestAnimationFrame(syncStanceOffset);
+      setTimeout(syncStanceOffset, 120);
+    });
+
+    dom.applyTopic.addEventListener("click", () => {
+      const item = findTopicByNumber(dom.topicSelect.value);
+      if (item) applyTopic(item);
+    });
+
+    dom.topicSelect.addEventListener("change", () => {
+      const item = findTopicByNumber(dom.topicSelect.value);
+      if (item) {
+        dom.topicNumber.value = item["序号"] || "";
+        applyTopic(item);
+        dom.topicStatus.textContent = `数据：已应用第 ${item["序号"]} 组`;
+      }
+    });
+
+    dom.topicFile.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        topicData = parseDelimited(String(reader.result || ""));
+        buildTopicOptions();
+        if (topicData.length > 0) {
+          const first = topicData[0];
+          dom.topicSelect.value = first["序号"] || "";
+          applyTopic(first);
+        }
+      };
+      reader.onerror = () => {};
+      reader.readAsText(file);
+    });
+
+    applyConfig(defaultConfig);
+    loadBackground();
+    loadStageConfig();
+    updateDisplay();
+    syncStanceOffset();
+    loadTopicsFromCsv();
+  </script>
+</body>
+</html>
